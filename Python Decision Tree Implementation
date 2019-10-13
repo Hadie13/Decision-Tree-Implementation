@@ -1,0 +1,44 @@
+# Modèle de détection de fraude : on verra que le modèle d'arbre de décision n'est pas l'idéal ; il faudrait pluôt passer
+# par une regression polynomiale
+
+import pandas as pd 
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor 
+from sklearn import tree
+from sklearn.externals.six import StringIO
+from IPython.display import Image
+import pydotplus
+from sklearn.tree import export_graphviz
+
+df = pd.read_csv('prediction_de_fraud.csv')
+target = df['amount'].values
+X = df[['step', 'type', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest',
+        'newbalanceDest', 'isFraud', 'isFlaggedFraud']].values
+
+# Données catégoriques 
+labEncr_X = LabelEncoder()
+X[:, 1] = labEncr_X.fit_transform(X[:,1])
+
+# Scindons les données test set and training set
+X_train, X_test, y_train, y_test = train_test_split(X, target, test_size=0.3,
+                                                    random_state=42)
+
+dt_reg = DecisionTreeRegressor(max_depth =10, min_samples_leaf=0.2, 
+                               random_state=50)
+
+# Nous ajustons ensuite l'arbre aux données d'entraînement 
+dt_reg.fit(X_train, y_train)
+y_pred = dt_reg.predict(X_test)
+
+ind_var = df[['step', 'type', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest',
+        'newbalanceDest', 'isFraud', 'isFlaggedFraud']]
+
+
+data = tree.export_graphviz(dt_reg, out_file= None, feature_names=ind_var.columns.values,
+                            proportion= True)
+
+graph = pydotplus.graph_from_dot_data(data)
+
+# Observer graph
+Image(graph.create_png()) # On observe que malgré la diminution des erreurs, l'erreur reste importante
